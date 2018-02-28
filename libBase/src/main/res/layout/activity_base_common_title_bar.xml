@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<com.zhy.autolayout.AutoLinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@android:color/white"
+    android:orientation="vertical">
+
+    <com.zhy.autolayout.AutoRelativeLayout
+        android:id="@+id/layout_title"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/title_bar_height"
+        android:orientation="horizontal"
+        android:padding="5dp">
+
+        <com.zhy.autolayout.AutoLinearLayout
+            android:id="@+id/ll_title_back"
+            android:layout_width="100px"
+            android:layout_height="match_parent"
+            android:layout_centerVertical="true"
+            android:gravity="center_vertical">
+
+            <ImageView
+                android:id="@+id/iv_title_back"
+                android:layout_width="40px"
+                android:layout_height="40px"
+                android:layout_marginLeft="20px"
+                android:src="@drawable/icon_back3x" />
+
+        </com.zhy.autolayout.AutoLinearLayout>
+
+        <EditText
+            android:inputType="text"
+            android:labelFor="@+id/et_title"
+            android:id="@+id/et_title"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_centerHorizontal="true"
+            android:gravity="center"
+            android:text="Title"
+            android:background="@null"
+            android:enabled="false"
+            android:textColor="@color/color_black"
+            android:textSize="18sp" />
+
+        <ViewStub
+            android:id="@+id/view_stub_common_title_right"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentRight="true"
+            android:layout_centerVertical="true" />
+
+    </com.zhy.autolayout.AutoRelativeLayout>
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1px"
+        android:background="@color/divider_color"
+        android:visibility="gone" />
+
+</com.zhy.autolayout.AutoLinearLayout>

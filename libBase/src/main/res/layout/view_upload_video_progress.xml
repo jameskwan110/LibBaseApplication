@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:background="@drawable/shape_radius_border"
+    android:orientation="vertical"
+    android:padding="10dp">
+
+    <io.netopen.hotbitmapgg.library.view.RingProgressBar
+        android:id="@+id/view_upload_video_progress"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_gravity="center"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="12dp"
+        app:max="100"
+        app:ringColor="#66CCCC"
+        app:ringProgressColor="#FFFFFF"
+        app:ringWidth="3dp"
+        app:style="STROKE"
+        app:textColor="#FFFFFF"
+        app:textIsShow="false"
+        app:textSize="16sp" />
+
+    <TextView
+        android:id="@+id/tv_upload_video_describe"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginLeft="12dp"
+        android:layout_marginRight="12dp"
+        android:layout_marginTop="12dp"
+        android:text="视频上传中"
+        android:textColor="@color/txt_white"
+        android:textSize="14sp" />
+
+</LinearLayout>

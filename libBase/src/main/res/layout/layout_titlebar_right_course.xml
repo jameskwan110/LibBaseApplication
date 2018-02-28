@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <TextView
+        android:id="@+id/tv_right_course"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="教程"
+        android:textColor="@color/txt_white"
+        android:textSize="15sp"
+        android:layout_marginRight="10dp"/>
+
+</LinearLayout>
