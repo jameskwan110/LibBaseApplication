@@ -3,8 +3,11 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/LibBaseApplication.iml" filepath="$PROJECT_DIR$/LibBaseApplication.iml" />
+      <module fileurl="file://D:\Work\LibBaseApplication\LibBaseApplication.iml" filepath="D:\Work\LibBaseApplication\LibBaseApplication.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://D:\Work\LibBaseApplication\app\app.iml" filepath="D:\Work\LibBaseApplication\app\app.iml" />
       <module fileurl="file://$PROJECT_DIR$/libBase/libBase.iml" filepath="$PROJECT_DIR$/libBase/libBase.iml" />
+      <module fileurl="file://D:\Work\LibBaseApplication\libBase\libBase.iml" filepath="D:\Work\LibBaseApplication\libBase\libBase.iml" />
     </modules>
   </component>
 </project>
