@@ -24,6 +24,7 @@ public abstract class BasePresenter implements IBasePresenter {
 
 	protected IBaseView mIBaseView;
 	protected BaseModel mBaseModel;
+	private RxBusManager busManager;
 
 	public BasePresenter(IBaseView iView) {
 		mIBaseView = iView;
@@ -31,20 +32,19 @@ public abstract class BasePresenter implements IBasePresenter {
 		busManager = new RxBusManager();
 	}
 
-	public abstract BaseModel getBaseModel();
-
-
 	/**
 	 * 下载 文件
-	 * @param url 全路径地址
+	 *
+	 * @param url      全路径地址
 	 * @param callBack 回调
 	 */
 	public void download(String url, FileCallBack<ResponseBody> callBack) {
 		mBaseModel.download(url, callBack);
 	}
 
-
-	private RxBusManager busManager;
+	public void download(final String start, final String url, final String savePath, FileCallBack<ResponseBody> callBack) {
+		mBaseModel.download(start, url, savePath, callBack);
+	}
 
 	public <T> void regRxBus(String eventName, Class<T> type, Consumer<T> next) {
 		busManager.on(eventName, type, next);
@@ -80,7 +80,7 @@ public abstract class BasePresenter implements IBasePresenter {
 
 	@Override
 	public void onServerSuccess(int vocational_id, HashMap<String, Object> exData, Object serverMsg) {
-
+		Log.e("BasePresenter", "onServerSuccess");
 	}
 
 	@Override
@@ -125,5 +125,7 @@ public abstract class BasePresenter implements IBasePresenter {
 		}
 		mIBaseView.dismissProgress();
 	}
+
+	public abstract BaseModel getBaseModel();
 
 }

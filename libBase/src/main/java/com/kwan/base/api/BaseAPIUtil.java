@@ -189,37 +189,12 @@ public abstract class BaseAPIUtil {
 		};
 
 		return new Builder(getBaseUpLoadUrl()).addInterceptor(tokenInterceptor).create();
-
-//        OkHttpClient okHttpClient = new OkHttpClient.Builder()
-//                .readTimeout(TIME_OUT, TimeUnit.MILLISECONDS)
-//                .connectTimeout(TIME_OUT, TimeUnit.MILLISECONDS)
-//                .addInterceptor(tokenInterceptor)
-//                .build();
-//
-//        return new Retrofit.Builder()
-//                .baseUrl(getBaseUpLoadUrl())
-//                .addConverterFactory(ScalarsConverterFactory.create())
-//                .addCallAdapterFactory(RxJavaCallAdapterFactory.create())
-//                .client(okHttpClient)
-//                .build();
 	}
 
 	protected Retrofit downloadAPI(String url, DownloadProgressInterceptor.DownloadProgressListener listener) {
 
 		DownloadProgressInterceptor interceptor = new DownloadProgressInterceptor(listener);
 		return new Builder(url).addInterceptor(interceptor).create();
-
-//		OkHttpClient client = new OkHttpClient.Builder()
-//				.addInterceptor(interceptor)
-//				.retryOnConnectionFailure(true)
-//				.connectTimeout(TIME_OUT, TimeUnit.MILLISECONDS)
-//				.build();
-//
-//		return new Retrofit.Builder()
-//				.baseUrl(url)
-//				.client(client)
-//				.addCallAdapterFactory(RxJava2CallAdapterFactory.create())
-//				.build();
 	}
 
 	protected Retrofit withToken() {
@@ -273,7 +248,13 @@ public abstract class BaseAPIUtil {
 //                .build();
 	}
 
-	public Flowable<ResponseBody> download(String url, DownloadProgressInterceptor.DownloadProgressListener listener){
-		return downloadAPI("http://192.168.0.1/",listener).create(BaseServerAPI.class).download(url);
+	public Flowable<ResponseBody> download(String url, DownloadProgressInterceptor.DownloadProgressListener listener) {
+		return downloadAPI("http://192.168.0.1/", listener).create(BaseServerAPI.class).download(url);
 	}
+
+	public Flowable<ResponseBody> download(String start, String url, DownloadProgressInterceptor.DownloadProgressListener listener) {
+		return downloadAPI("http://192.168.0.1/", listener).create(BaseServerAPI.class).download(start, url);
+	}
+
+
 }

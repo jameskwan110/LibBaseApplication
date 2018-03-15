@@ -20,6 +20,7 @@ import com.orhanobut.logger.Logger;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 
+import java.io.File;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.HashMap;
@@ -209,10 +210,19 @@ public abstract class BaseModel implements ServerSubscriberListener<Object>, Ser
 		}
 	}
 
+
+	/**
+	 * 单线程下载
+	 *
+	 * @param url      下载地址
+	 * @param callBack 下载回调
+	 */
+
 	public void download(final String url, final FileCallBack<ResponseBody> callBack) {
 
 		final ObjectServerSubscriber<ResponseBody> subscriber = new ObjectServerSubscriber<>(this);
 		subscriber.vocational_id = BaseServerAPI.DOWN_LOAD_VOCATIONAL_ID;
+
 		Disposable disposable = mBaseAPIUtil.download(url, new DownloadProgressInterceptor.DownloadProgressListener() {
 			@Override
 			public void update(long bytesRead, long contentLength, boolean done) {
@@ -233,5 +243,10 @@ public abstract class BaseModel implements ServerSubscriberListener<Object>, Ser
 		addDisposable(BaseServerAPI.DOWN_LOAD_VOCATIONAL_ID, disposable);
 
 	}
+
+
+
+
+
 }
 
