@@ -1,6 +1,8 @@
 package com.kwan.base.common.service;
 
+import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -10,28 +12,26 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Environment;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.FileProvider;
+import android.text.TextUtils;
 import android.util.Log;
 import android.widget.RemoteViews;
 import android.widget.Toast;
 
-import com.kwan.base.api.download.FileCallBack;
+import com.kwan.base.R;
 import com.kwan.base.common.config.Config;
-import com.kwan.base.download.FileBean;
-import com.kwan.base.mvp.model.DownLoadModel;
-import com.kwan.base.mvp.presenter.IBasePresenter;
+import com.kwan.base.download.DownloadFileBean;
+import com.kwan.base.mvp.model.DownloadTask;
 
 import java.io.File;
 import java.text.DecimalFormat;
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import okhttp3.ResponseBody;
 
 
 /**
@@ -41,23 +41,20 @@ import okhttp3.ResponseBody;
  * Description:
  */
 
-public class VersionUpdateService extends Service implements IBasePresenter {
-
+public class VersionUpdateService extends Service {
 
 	public static final String ACTION_START = "ACTION_START";
 	public static final String ACTION_PAUSE = "ACTION_PAUSE";
 
-	DownLoadModel downLoadModel;
-
-
 	/**
 	 * 下载任务集合 多任务（每个任务都是多线程断点续传）
 	 */
-	//private List<DownloadTask> downloadTasks = new ArrayList<>();
+	private List<DownloadTask> downloadTasks = new ArrayList<>();
 	public static ExecutorService executorService = Executors.newCachedThreadPool();
 	private DownLoadBroadcastReceiver receiver;
+	private DownloadFileBean curDownloadFileBean;
 
-	private FileBean curFileBean;
+
 	/**
 	 * 网络状态
 	 */
@@ -67,11 +64,12 @@ public class VersionUpdateService extends Service implements IBasePresenter {
 	 * 手动暂停下载
 	 */
 	private boolean isUserPause;
+	//private ArrayList<DownloadTask> downloadTasks = new ArrayList<>();
 
 	@Override
 	public void onCreate() {
 		super.onCreate();
-		//receiver = new DownLoadBroadcastReceiver();
+		receiver = new DownLoadBroadcastReceiver();
 		IntentFilter intentFilter = new IntentFilter();
 		intentFilter.addAction(Config.ACTION_DOWNLOAD_START);
 		intentFilter.addAction(Config.ACTION_DOWNLOAD_REFRESH);
@@ -83,8 +81,6 @@ public class VersionUpdateService extends Service implements IBasePresenter {
 		intentFilter.addAction(BUTTON_CLOSE_ACTION);
 		intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
 		registerReceiver(receiver, intentFilter);
-
-		downLoadModel = new DownLoadModel(this);
 	}
 
 	@Override
@@ -92,61 +88,33 @@ public class VersionUpdateService extends Service implements IBasePresenter {
 
 		if (intent.getAction().equals(ACTION_START)) {
 			isDownLoading = true;
-			FileBean fileBean = (FileBean) intent.getSerializableExtra("FileBean");
-			curFileBean = fileBean;
+			curDownloadFileBean = (DownloadFileBean) intent.getSerializableExtra("DownloadFileBean");
 
-			downLoadModel.download(curFileBean, new FileCallBack<ResponseBody>(Environment.getExternalStorageDirectory().getPath(),"xx.apk") {
-				@Override
-				public void onSuccess(ResponseBody responseBody) {
-					Log.e("kwan","onSuccess()");
+			for (DownloadTask downloadTask : downloadTasks) {
+				if (downloadTask.getFileBean().getUrl().equals(curDownloadFileBean.getUrl())) {
+					//如果下载任务中以后该文件的下载任务 则直接返回
+					return super.onStartCommand(intent, flags, startId);
 				}
+			}
 
-				@Override
-				public void onProgress(long progress, long total, boolean done) {
-
-				}
-
-				@Override
-				public void onStart() {
-
-				}
-
-				@Override
-				public void onCompleted() {
-
-					Log.e("kwan","onCompleted()");
-				}
-
-				@Override
-				public void onError(Throwable e) {
-
-				}
-			});
-
-
-
-//			for (DownloadTask downloadTask : downloadTasks) {
-//				if (downloadTask.getFileBean().getUrl().equals(fileBean.getUrl())) {
-//					//如果下载任务中以后该文件的下载任务 则直接返回
-//					return super.onStartCommand(intent, flags, startId);
-//				}
-//			}
-//
-//			executorService.execute(new InitThread(getBaseContext(), fileBean));
+			Intent intent2 = new Intent(Config.ACTION_DOWNLOAD_START);
+			intent2.putExtra("DownloadFileBean", curDownloadFileBean);
+			sendBroadcast(intent2);
 
 
 		} else if (intent.getAction().equals(ACTION_PAUSE)) {
-			FileBean fileBean = (FileBean) intent.getSerializableExtra("FileBean");
-			//DownloadTask pauseTask = null;
-//			for (DownloadTask downloadTask : downloadTasks) {
-//				if (downloadTask.getFileBean().getUrl().equals(fileBean.getUrl())) {
-//					downloadTask.pauseDownload();
-//					pauseTask = downloadTask;
-//					break;
-//				}
-//			}
+
+			DownloadFileBean downloadFileBean = (DownloadFileBean) intent.getSerializableExtra("DownloadFileBean");
+			DownloadTask pauseTask = null;
+			for (DownloadTask downloadTask : downloadTasks) {
+				if (downloadTask.getFileBean().getUrl().equals(downloadFileBean.getUrl())) {
+					downloadTask.pauseDownload();
+					pauseTask = downloadTask;
+					break;
+				}
+			}
 			//将下载任务移除
-		//	downloadTasks.remove(pauseTask);
+			downloadTasks.remove(pauseTask);
 		}
 		return super.onStartCommand(intent, flags, startId);
 	}
@@ -175,51 +143,54 @@ public class VersionUpdateService extends Service implements IBasePresenter {
 	/**
 	 * 发送通知
 	 */
-//	private void sendDefaultNotification() {
-//		remoteView = new RemoteViews(getPackageName(), R.layout.layout_notifi);
-//		if (TextUtils.isEmpty(Config.notificationTitle)) {
-//			remoteView.setTextViewText(R.id.textView, getString(R.string.notification_title));
-//		} else {
-//			remoteView.setTextViewText(R.id.textView, Config.notificationTitle);
-//		}
-//		if (Config.notificaionIconResId != 0) {
-//			remoteView.setImageViewResource(R.id.icon, Config.notificaionIconResId);
-//		}
-//		Intent buttonAction = new Intent(BUTTON_ACTION);
-//		PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 1, buttonAction, PendingIntent.FLAG_UPDATE_CURRENT);
-//		remoteView.setOnClickPendingIntent(R.id.btn1, pendingIntent);
-//
-//		Intent closeAction = new Intent(BUTTON_CLOSE_ACTION);
-//		PendingIntent closeIntent = PendingIntent.getBroadcast(this, 1, closeAction, PendingIntent.FLAG_UPDATE_CURRENT);
-//		remoteView.setOnClickPendingIntent(R.id.btnClose, closeIntent);
-//
-//		builder = new NotificationCompat.Builder(this);
-//		if (Config.notificaionSmallIconResId == 0) {
-//			builder.setSmallIcon(R.mipmap.ic_launcher);
-//		} else {
-//			builder.setSmallIcon(Config.notificaionSmallIconResId);
-//		}
-//		builder.setTicker(getString(R.string.notification_ticker));
-//		builder.setContent(remoteView);
-//		builder.setAutoCancel(true);
-//		builder.setOngoing(true);
-//		builder.setPriority(Notification.PRIORITY_MAX);
-//		notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-//		notificationManager.notify(notificationId, builder.build());
-//	}
-//
-//	private void updataNofication(int progress, int size, String speed) {
-//		if (isDownLoading) {
-//			remoteView.setImageViewResource(R.id.btn1, R.mipmap.ic_pause);
-//		} else {
-//			remoteView.setImageViewResource(R.id.btn1, R.mipmap.ic_continue);
-//		}
-//		remoteView.setProgressBar(R.id.progressBar, 100, progress, false);
-//		DecimalFormat df = new DecimalFormat("#.##");
-//		remoteView.setTextViewText(R.id.textSize, df.format(b2mbDouble(size)) + "");
-//		remoteView.setTextViewText(R.id.textSpeed, speed + "kb/s");
-//		notificationManager.notify(notificationId, builder.build());
-//	}
+	private void sendDefaultNotification() {
+
+		remoteView = new RemoteViews(getPackageName(), R.layout.layout_notifi);
+
+		if (TextUtils.isEmpty(Config.notificationTitle)) {
+			remoteView.setTextViewText(R.id.textView, getString(R.string.notification_title));
+		} else {
+			remoteView.setTextViewText(R.id.textView, Config.notificationTitle);
+		}
+		if (Config.notificaionIconResId != 0) {
+			remoteView.setImageViewResource(R.id.icon, Config.notificaionIconResId);
+		}
+		Intent buttonAction = new Intent(BUTTON_ACTION);
+		PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 1, buttonAction, PendingIntent.FLAG_UPDATE_CURRENT);
+		remoteView.setOnClickPendingIntent(R.id.btn1, pendingIntent);
+
+		Intent closeAction = new Intent(BUTTON_CLOSE_ACTION);
+		PendingIntent closeIntent = PendingIntent.getBroadcast(this, 1, closeAction, PendingIntent.FLAG_UPDATE_CURRENT);
+		remoteView.setOnClickPendingIntent(R.id.btnClose, closeIntent);
+
+		builder = new NotificationCompat.Builder(this);
+		if (Config.notificaionSmallIconResId == 0) {
+			builder.setSmallIcon(R.mipmap.ic_launcher);
+		} else {
+			builder.setSmallIcon(Config.notificaionSmallIconResId);
+		}
+		builder.setTicker(getString(R.string.notification_ticker));
+		builder.setContent(remoteView);
+		builder.setAutoCancel(true);
+		builder.setOngoing(true);
+		builder.setPriority(Notification.PRIORITY_MAX);
+		notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+		notificationManager.notify(notificationId, builder.build());
+	}
+
+	private void updataNofication(int progress, long size, String speed) {
+		if (isDownLoading) {
+			remoteView.setImageViewResource(R.id.btn1, R.mipmap.ic_pause);
+		} else {
+			remoteView.setImageViewResource(R.id.btn1, R.mipmap.ic_continue);
+		}
+		remoteView.setProgressBar(R.id.progressBar, 100, progress, false);
+		DecimalFormat df = new DecimalFormat("#.##");
+
+		remoteView.setTextViewText(R.id.textSize, df.format(b2mbDouble(size)) + "");
+		remoteView.setTextViewText(R.id.textSpeed, speed + "kb/s");
+		notificationManager.notify(notificationId, builder.build());
+	}
 
 	public double b2mbDouble(long b) {
 		return b * 1.0 / 1024 / 1024;
@@ -236,48 +207,51 @@ public class VersionUpdateService extends Service implements IBasePresenter {
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			String action = intent.getAction();
-			if (action.equals(Config.ACTION_DOWNLOAD_START)) {
+
+			if (action.equals(Config.ACTION_DOWNLOAD_START)) { //开始下载
 				isDownLoading = true;
-				FileBean fileBean = (FileBean) intent.getSerializableExtra("FileBean");
+				DownloadFileBean downloadFileBean = (DownloadFileBean) intent.getSerializableExtra("DownloadFileBean");
 				//开始下载
-//				DownloadTask downloadTask = new DownloadTask(VersionUpdateService.this, fileBean, 3);
-//				downloadTasks.add(downloadTask);
-//				if (notificationManager == null) {
-//					sendDefaultNotification();
-//				}
-			} else if (action.equals(Config.ACTION_DOWNLOAD_FININSHED)) {
-				FileBean fileBean = (FileBean) intent.getSerializableExtra("FileBean");
-//				DownloadTask task = null;
-//				for (DownloadTask downloadTask : downloadTasks) {
-//					if (downloadTask.getFileBean().getUrl().equals(fileBean.getUrl())) {
-//						task = downloadTask;
-//						break;
-//					}
-//				}
-//				if (task != null) {
-//					downloadTasks.remove(task);
-//				}
-				installPage(fileBean);
+				DownloadTask curDownloadTask= new DownloadTask(VersionUpdateService.this, downloadFileBean).startDownload();
+				downloadTasks.add(curDownloadTask);
+
+				//发送通知
+				if (notificationManager == null) {
+					sendDefaultNotification();
+				}
+			} else if (action.equals(Config.ACTION_DOWNLOAD_FININSHED)) {//下载完成
+
+				DownloadFileBean downloadFileBean = (DownloadFileBean) intent.getSerializableExtra("DownloadFileBean");
+				installPage(downloadFileBean);
 				cancleNotification();
-				curFileBean = null;
-			} else if (action.equals(Config.ACTION_DOWNLOAD_REFRESH)) {
-				FileBean fileBean = (FileBean) intent.getSerializableExtra("FileBean");
+				curDownloadFileBean = null;
+
+
+			} else if (action.equals(Config.ACTION_DOWNLOAD_REFRESH)) {//下载更新
+
+				DownloadFileBean downloadFileBean = (DownloadFileBean) intent.getSerializableExtra("DownloadFileBean");
 				DecimalFormat df = new DecimalFormat("#.##");
-				int progress = (int) (fileBean.getFinished() * 1.0f / fileBean.getLength() * 1.0f * 100);
+				int progress = (int) (downloadFileBean.getFinished() * 1.0f / downloadFileBean.getLength() * 1.0f * 100);
 				int speed = intent.getIntExtra("Speed", 0);
 				String format = df.format(speed * 1.0 / 1024);
-				//updataNofication(progress, fileBean.getLength(), format);
-			} else if (action.equals(Config.ACTION_DOWNLOAD_PAUSE)) {
-//				isDownLoading = false;
-//				FileBean fileBean = (FileBean) intent.getSerializableExtra("FileBean");
-//				int progress = (int) (fileBean.getFinished() * 1.0f / fileBean.getLength() * 1.0f * 100);
-//				updataNofication(progress, fileBean.getLength(), "0");
+				updataNofication(progress, downloadFileBean.getLength(), format);
+
+
+			} else if (action.equals(Config.ACTION_DOWNLOAD_PAUSE)) {//下载暂停
+
+				isDownLoading = false;
+				DownloadFileBean fileBean = (DownloadFileBean) intent.getSerializableExtra("DownloadFileBean");
+				int progress = (int) (fileBean.getFinished() * 1.0f / fileBean.getLength() * 1.0f * 100);
+				updataNofication(progress, fileBean.getLength(), "0");
+
+
 			} else if (action.equals(BUTTON_CLOSE_ACTION)) {//点击取消下载按钮
-//				if (curFileBean != null) {
-//					File file = new File(Config.downLoadPath, curFileBean.getFileName());
+//				if (curDownloadFileBean != null) {
+//
+//					File file = new File(Config.downLoadPath, curDownloadFileBean.getFileName());
 //					DownloadTask task = null;
 //					for (DownloadTask downloadTask : downloadTasks) {
-//						if (downloadTask.getFileBean().getUrl().equals(curFileBean.getUrl())) {
+//						if (downloadTask.getFileBean().getUrl().equals(curDownloadFileBean.getUrl())) {
 //							downloadTask.closeDownload();
 //							task = downloadTask;
 //							break;
@@ -286,13 +260,15 @@ public class VersionUpdateService extends Service implements IBasePresenter {
 //					if (task != null) {
 //						downloadTasks.remove(task);
 //					} else {
-//						DownloadTask downloadTask = new DownloadTask(VersionUpdateService.this, curFileBean, 3);
+//						DownloadTask downloadTask = new DownloadTask(VersionUpdateService.this, curDownloadFileBean, 3);
 //						downloadTask.closeDownload();
 //					}
 //				}
+
+
 			} else if (action.equals(Config.ACTION_DOWNLOAD_CLOSE)) {//取消下载
-				FileBean fileBean = (FileBean) intent.getSerializableExtra("FileBean");
-				File file = new File(Config.downLoadPath, fileBean.getFileName());
+				DownloadFileBean downloadFileBean = (DownloadFileBean) intent.getSerializableExtra("DownloadFileBean");
+				File file = new File(Config.downLoadPath, downloadFileBean.getFileName());
 				if (file.exists()) {
 					file.delete();
 				}
@@ -306,19 +282,19 @@ public class VersionUpdateService extends Service implements IBasePresenter {
 					isUserPause = true;
 					Intent startIntent = new Intent(context, VersionUpdateService.class);
 					startIntent.setAction(VersionUpdateService.ACTION_PAUSE);
-					startIntent.putExtra("FileBean", curFileBean);
+					startIntent.putExtra("DownloadFileBean", curDownloadFileBean);
 					startService(startIntent);
 				} else {
 					isUserPause = false;
 					Intent startIntent = new Intent(context, VersionUpdateService.class);
 					startIntent.setAction(VersionUpdateService.ACTION_START);
-					startIntent.putExtra("FileBean", curFileBean);
+					startIntent.putExtra("DownloadFileBean", curDownloadFileBean);
 					startService(startIntent);
 				}
 			} else if (action.equals(Config.ACTION_DOWNLOAD_ERROR)) {
 				Toast.makeText(context, intent.getStringExtra("error"), Toast.LENGTH_SHORT).show();
 			} else {
-				if (curFileBean == null) return;
+				if (curDownloadFileBean == null) return;
 				ConnectivityManager connectivityManager = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
 				NetworkInfo mobNetInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_MOBILE);
 				NetworkInfo wifiNetInfo = connectivityManager.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
@@ -329,7 +305,7 @@ public class VersionUpdateService extends Service implements IBasePresenter {
 					if (!isDownLoading) return;
 					Intent startIntent = new Intent(context, VersionUpdateService.class);
 					startIntent.setAction(VersionUpdateService.ACTION_PAUSE);
-					startIntent.putExtra("FileBean", curFileBean);
+					startIntent.putExtra("DownloadFileBean", curDownloadFileBean);
 					startService(startIntent);
 				} else {
 					netWorkStatus = true;
@@ -337,7 +313,7 @@ public class VersionUpdateService extends Service implements IBasePresenter {
 					if (isDownLoading || isUserPause) return;
 					Intent startIntent = new Intent(context, VersionUpdateService.class);
 					startIntent.setAction(VersionUpdateService.ACTION_START);
-					startIntent.putExtra("FileBean", curFileBean);
+					startIntent.putExtra("DownloadFileBean", curDownloadFileBean);
 					startService(startIntent);
 
 				}
@@ -348,9 +324,13 @@ public class VersionUpdateService extends Service implements IBasePresenter {
 	/**
 	 * 自动安装
 	 */
-	private void installPage(FileBean filebean) {
-		String filePath = Config.downLoadPath + "/" + filebean.getFileName();
+	private void installPage(DownloadFileBean filebean) {
+
+		String filePath = filebean.getSavePath() + "/" + filebean.getFileName();
 		File file = new File(filePath);
+
+		Log.e("kwan", "path:" + filePath);
+
 		if (!file.exists()) {
 			throw new NullPointerException(
 					"The package cannot be found");
@@ -366,64 +346,9 @@ public class VersionUpdateService extends Service implements IBasePresenter {
 			install.setDataAndType(Uri.fromFile(file), "application/vnd.android.package-archive");
 		}
 		getApplicationContext().startActivity(install);
-		collapseStatusBar();
-	}
-
-	/**
-	 * 收起通知栏
-	 */
-	public void collapseStatusBar() {
-//		try {
-//			Object statusBarManager = getSystemService("statusbar");
-//			Method collapse;
-//			if (Build.VERSION.SDK_INT <= 16) {
-//				collapse = statusBarManager.getClass().getMethod("collapse");
-//			} else {
-//				collapse = statusBarManager.getClass().getMethod("collapsePanels");
-//			}
-//			collapse.invoke(statusBarManager);
-//		} catch (Exception localException) {
-//			localException.printStackTrace();
-//		}
-	}
-
-
-	// 下载model回调
-
-
-	@Override
-	public void onNoNetWork() {
 
 	}
 
-	@Override
-	public void onServerSuccess(int vocational_id, HashMap<String, Object> exData, Object serverMsg) {
 
-	}
-
-	@Override
-	public void onServerError(int vocational_id, HashMap<String, Object> exData, Throwable e) {
-
-	}
-
-	@Override
-	public void onServerFailed(String s) {
-
-	}
-
-	@Override
-	public void onServerUploadError(int vocational_id, HashMap exdata, Throwable e) {
-
-	}
-
-	@Override
-	public void onServerUploadCompleted(int vocational_id, HashMap exdata) {
-
-	}
-
-	@Override
-	public void onServerUploadNext(int vocational_id, HashMap exdata, Object s) {
-
-	}
 }
 

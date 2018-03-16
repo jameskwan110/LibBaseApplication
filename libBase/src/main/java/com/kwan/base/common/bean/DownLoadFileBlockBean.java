@@ -2,8 +2,8 @@ package com.kwan.base.common.bean;
 
 import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Id;
+import org.greenrobot.greendao.annotation.Keep;
 import org.greenrobot.greendao.annotation.Property;
-import org.greenrobot.greendao.annotation.Generated;
 
 /**
  * Created by Administrator on 2018/3/15.
@@ -12,43 +12,44 @@ import org.greenrobot.greendao.annotation.Generated;
 public class DownLoadFileBlockBean extends POJO {
 
 	@Id
-	private Long id;
+	private long id;
 	@Property(nameInDb = "START")
-	private Long start;
+	private long start;
 	@Property(nameInDb = "END")
-	private Long end;
+	private long end;
 	@Property(nameInDb = "URL")
 	private String url;
 	@Property(nameInDb = "FINISHED")
-	private Long finished;
-	@Generated(hash = 1583844563)
+	private long finished;
 
-	public DownLoadFileBlockBean(Long id, String url, Long start, Long end, Long finished) {
+
+	@Keep
+	public DownLoadFileBlockBean(long id, String url, long start, long end, long finished) {
 		this.id = id;
 		this.url = url;
 		this.start = start;
 		this.end = end;
 		this.finished = finished;
 	}
-	@Generated(hash = 1510983810)
+
 	public DownLoadFileBlockBean() {
 	}
-	public Long getId() {
+	public long getId() {
 		return this.id;
 	}
-	public void setId(Long id) {
+	public void setId(long id) {
 		this.id = id;
 	}
-	public Long getStart() {
+	public long getStart() {
 		return this.start;
 	}
-	public void setStart(Long start) {
+	public void setStart(long start) {
 		this.start = start;
 	}
-	public Long getEnd() {
+	public long getEnd() {
 		return this.end;
 	}
-	public void setEnd(Long end) {
+	public void setEnd(long end) {
 		this.end = end;
 	}
 	public String getUrl() {
@@ -57,11 +58,20 @@ public class DownLoadFileBlockBean extends POJO {
 	public void setUrl(String url) {
 		this.url = url;
 	}
-	public Long getFinished() {
+	public long getFinished() {
 		return this.finished;
 	}
-	public void setFinished(Long finished) {
+	public void setFinished(long finished) {
 		this.finished = finished;
 	}
-	
+
+	@Override
+	public String toString() {
+		return "DownLoadFileBlockBean{" +
+				"id=" + id +
+				", start=" + start +
+				", end=" + end +
+				", finished=" + finished +
+				'}';
+	}
 }

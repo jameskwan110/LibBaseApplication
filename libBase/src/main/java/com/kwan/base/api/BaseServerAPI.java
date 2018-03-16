@@ -14,6 +14,8 @@ import retrofit2.http.Url;
  */
 public interface BaseServerAPI {
 
+
+
 	@Streaming
 	@GET
 	Flowable<ResponseBody> download(@Url String url);
@@ -28,6 +30,7 @@ public interface BaseServerAPI {
 	@GET
 	Flowable<ResponseBody> download(@Header("RANGE") String start, @Url String url);
 	int RANGE_DOWN_LOAD_VOCATIONAL_ID = 0x000001;
+	int RANGE_DOWN_LOAD_LENTH_VOCATIONAL_ID = 0x000002;
 
 
 }

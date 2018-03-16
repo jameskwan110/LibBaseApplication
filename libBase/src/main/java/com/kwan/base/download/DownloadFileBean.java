@@ -9,16 +9,16 @@ import java.io.Serializable;
  * Description:下载文件信息
  */
 
-public class FileBean implements Serializable {
+public class DownloadFileBean implements Serializable {
 
     private int id;
     private String fileName;
     private String savePath;
     private String url;
     private long length;
-    private int finished;
+    private long finished;
 
-    public FileBean(int id, String fileName, String savePath ,String url, int length, int finished) {
+    public DownloadFileBean(int id, String fileName, String savePath , String url, long length, long finished) {
         this.id = id;
         this.fileName = fileName;
         this.savePath = savePath;
@@ -59,7 +59,7 @@ public class FileBean implements Serializable {
         this.length = length;
     }
 
-    public int getFinished() {
+    public long getFinished() {
         return finished;
     }
 

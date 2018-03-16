@@ -3,7 +3,7 @@ package com.kwan.base.mvp.presenter;
 import android.support.annotation.CallSuper;
 import android.util.Log;
 
-import com.kwan.base.api.download.FileCallBack;
+import com.kwan.base.api.download.DownloadFileCallBack;
 import com.kwan.base.mvp.model.BaseModel;
 import com.kwan.base.rxbus.RxBusManager;
 
@@ -38,13 +38,13 @@ public abstract class BasePresenter implements IBasePresenter {
 	 * @param url      全路径地址
 	 * @param callBack 回调
 	 */
-	public void download(String url, FileCallBack<ResponseBody> callBack) {
-		mBaseModel.download(url, callBack);
-	}
+//	public void download(String url, DownloadFileCallBack<ResponseBody> callBack) {
+//		mBaseModel.download(url, callBack);
+//	}
 
-	public void download(final String start, final String url, final String savePath, FileCallBack<ResponseBody> callBack) {
-		mBaseModel.download(start, url, savePath, callBack);
-	}
+//	public void download(final String start, final String url, final String savePath, DownloadFileCallBack<ResponseBody> callBack) {
+//		mBaseModel.download(start, url, savePath, callBack);
+//	}
 
 	public <T> void regRxBus(String eventName, Class<T> type, Consumer<T> next) {
 		busManager.on(eventName, type, next);

@@ -6,12 +6,8 @@ import android.util.Log;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.kwan.base.api.BaseAPIUtil;
-import com.kwan.base.api.BaseServerAPI;
-import com.kwan.base.api.ObjectServerSubscriber;
 import com.kwan.base.api.ServerSubscriberListener;
 import com.kwan.base.api.ServerUploadSubscriber;
-import com.kwan.base.api.download.DownloadProgressInterceptor;
-import com.kwan.base.api.download.FileCallBack;
 import com.kwan.base.common.bean.ServerMsg;
 import com.kwan.base.mvp.presenter.IBasePresenter;
 import com.kwan.base.util.SysUtil;
@@ -20,7 +16,6 @@ import com.orhanobut.logger.Logger;
 import org.reactivestreams.Publisher;
 import org.reactivestreams.Subscription;
 
-import java.io.File;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.HashMap;
@@ -37,7 +32,6 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
-import okhttp3.ResponseBody;
 
 import static com.orhanobut.logger.Logger.t;
 
@@ -209,44 +203,6 @@ public abstract class BaseModel implements ServerSubscriberListener<Object>, Ser
 			compositeDisposable.clear();
 		}
 	}
-
-
-	/**
-	 * 单线程下载
-	 *
-	 * @param url      下载地址
-	 * @param callBack 下载回调
-	 */
-
-	public void download(final String url, final FileCallBack<ResponseBody> callBack) {
-
-		final ObjectServerSubscriber<ResponseBody> subscriber = new ObjectServerSubscriber<>(this);
-		subscriber.vocational_id = BaseServerAPI.DOWN_LOAD_VOCATIONAL_ID;
-
-		Disposable disposable = mBaseAPIUtil.download(url, new DownloadProgressInterceptor.DownloadProgressListener() {
-			@Override
-			public void update(long bytesRead, long contentLength, boolean done) {
-				callBack.onProgress(bytesRead, contentLength, done);
-			}
-		}).subscribeOn(Schedulers.io())//请求网络 在调度者的io线程
-				.observeOn(Schedulers.io()) //指定线程保存文件
-				.doOnNext(new Consumer<ResponseBody>() {
-					@Override
-					public void accept(@NonNull ResponseBody responseBody) throws Exception {
-						Log.e("kwan", "download accept");
-						callBack.saveFile(responseBody);
-					}
-				})
-				.observeOn(AndroidSchedulers.mainThread()) //在主线程中更新ui
-				.subscribeWith(subscriber);
-
-		addDisposable(BaseServerAPI.DOWN_LOAD_VOCATIONAL_ID, disposable);
-
-	}
-
-
-
-
 
 }
 

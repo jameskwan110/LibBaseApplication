@@ -5,17 +5,21 @@ import android.util.Log;
 import com.kwan.base.api.BaseAPIUtil;
 import com.kwan.base.api.BaseServerAPI;
 import com.kwan.base.api.ObjectServerSubscriber;
+import com.kwan.base.api.download.DownloadFileCallBack;
 import com.kwan.base.api.download.DownloadProgressInterceptor;
-import com.kwan.base.api.download.FileCallBack;
 import com.kwan.base.common.bean.DownLoadFileBlockBean;
-import com.kwan.base.download.FileBean;
+import com.kwan.base.download.DownloadFileBean;
 import com.kwan.base.mvp.model.db.BaseDao;
 import com.kwan.base.mvp.presenter.IBasePresenter;
 
-import java.util.ArrayList;
+import java.io.File;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
 import java.util.List;
 
+import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.annotations.NonNull;
+import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
@@ -26,8 +30,22 @@ import okhttp3.ResponseBody;
 
 public class DownLoadModel extends BaseModel {
 
-	public DownLoadModel(IBasePresenter iBasePresenter) {
+	private DownloadFileCallBack callBack;
+	private Boolean isPause = false;
+	private Boolean isClose = false;
+	public int downloadThreadCount = 3;
+
+	public void setPause(Boolean pause) {
+		isPause = pause;
+	}
+
+	public void setClose(Boolean close) {
+		isClose = close;
+	}
+
+	public DownLoadModel(IBasePresenter iBasePresenter, DownloadFileCallBack callBack) {
 		super(iBasePresenter);
+		this.callBack = callBack;
 	}
 
 	@Override
@@ -55,27 +73,19 @@ public class DownLoadModel extends BaseModel {
 		};
 	}
 
-
-	public void download(ArrayList<FileBean> fileBeans,final FileCallBack<ResponseBody> callBack) {
-		for (FileBean fileBean : fileBeans)
-			download(fileBean,callBack);
-	}
-
-	public void download(FileBean fileBean,final FileCallBack<ResponseBody> callBack) {
-		getDownLoadLength(fileBean, callBack);
+	public void download(DownloadFileBean downloadFileBean) {
+		getDownLoadLength(downloadFileBean);
 	}
 
 	/**
 	 * 获取下载文件的长度
 	 */
-	private void getDownLoadLength(final FileBean fileBean,final FileCallBack<ResponseBody> callBack) {
+	private void getDownLoadLength(final DownloadFileBean downloadFileBean) {
 
-		final ObjectServerSubscriber<ResponseBody> subscriber = new ObjectServerSubscriber<>(this);
-		subscriber.vocational_id = BaseServerAPI.RANGE_DOWN_LOAD_VOCATIONAL_ID;
-
-		mBaseAPIUtil.download("0", fileBean.getUrl(), new DownloadProgressInterceptor.DownloadProgressListener() {
+		mBaseAPIUtil.download("0", downloadFileBean.getUrl(), new DownloadProgressInterceptor.DownloadProgressListener() {
 			@Override
 			public void update(long bytesRead, long contentLength, boolean done) {
+
 			}
 		}).subscribeOn(Schedulers.io())
 				.observeOn(Schedulers.io())
@@ -83,102 +93,217 @@ public class DownLoadModel extends BaseModel {
 					@Override
 					public void accept(@NonNull ResponseBody responseBody) throws Exception {
 						Log.e("kwan", "download accept::" + responseBody.contentLength());
+						downloadFileBean.setLength(responseBody.contentLength());
+						prepareDownloadFile(downloadFileBean);
 
-						fileBean.setLength(responseBody.contentLength());
-						prepareDownloadFile(fileBean,callBack);
 
-					}
-				})
-				.subscribeWith(subscriber);
-
+					}}).subscribe();
 	}
 
 
 	/**
 	 * 多线程下载
 	 *
-	 * @param start
-	 * @param url
-	 * @param callBack
+	 * @param start 开始位置
+	 * @param url   下载地址
 	 */
 
+	private void download(final String start, String url, final DownLoadFileBlockBean blockBean, final DownloadFileBean fileBean) {
 
-	private void download(final String start, String url, final FileCallBack<ResponseBody> callBack) {
+		Log.e("kwan","start::"+start);
 
-		final ObjectServerSubscriber<ResponseBody> subscriber = new ObjectServerSubscriber<>(this);
-		subscriber.vocational_id = BaseServerAPI.RANGE_DOWN_LOAD_VOCATIONAL_ID;
 
-		mBaseAPIUtil.download(start, url, new DownloadProgressInterceptor.DownloadProgressListener() {
+		Disposable disposable = mBaseAPIUtil.download(start, url, new DownloadProgressInterceptor.DownloadProgressListener() {
 			@Override
 			public void update(long bytesRead, long contentLength, boolean done) {
-				callBack.onProgress(bytesRead, contentLength, done);
 			}
-		}).subscribeOn(Schedulers.io())
-				.observeOn(Schedulers.io())
+		}).subscribeOn(Schedulers.io())//请求网络 在调度者的io线程
+				.observeOn(Schedulers.io()) //指定线程保存文件
 				.doOnNext(new Consumer<ResponseBody>() {
 					@Override
 					public void accept(@NonNull ResponseBody responseBody) throws Exception {
-						Log.e("kwan", "download accept::" + responseBody.contentLength());
+						Log.e("kwan", "blockbean-- " + blockBean.getId() + " download accept");
 
+						Log.e("kwan","begin save:");
 
-
-
-
+						saveMergerFile(responseBody, blockBean, fileBean);
 					}
-				})
-				.subscribeWith(subscriber);
+				})//在主线程中更新ui
+				.subscribe();
+
+		addDisposable(BaseServerAPI.RANGE_DOWN_LOAD_VOCATIONAL_ID, disposable);
 	}
 
-
-	int downloadThreadCount = 3;
 	/**
-	 * 总下载完成进度
+	 * 单线程下载
+	 *
+	 * @param url      下载地址
+	 * @param callBack 下载回调
 	 */
-	private int finishedProgress = 0;
+
+	public void download(final String url, final DownloadFileCallBack<ResponseBody> callBack) {
+
+		final ObjectServerSubscriber<ResponseBody> subscriber = new ObjectServerSubscriber<>(this);
+		subscriber.vocational_id = BaseServerAPI.DOWN_LOAD_VOCATIONAL_ID;
+
+		Disposable disposable = mBaseAPIUtil.download(url, new DownloadProgressInterceptor.DownloadProgressListener() {
+			@Override
+			public void update(long bytesRead, long contentLength, boolean done) {
+				Log.e("kwan", "normal down:" + bytesRead);
+				//	callBack.onDownloadProgress(bytesRead, contentLength, done);
+			}
+		}).subscribeOn(Schedulers.io())//请求网络 在调度者的io线程
+				.observeOn(Schedulers.io()) //指定线程保存文件
+				.doOnNext(new Consumer<ResponseBody>() {
+					@Override
+					public void accept(@NonNull ResponseBody responseBody) throws Exception {
+						Log.e("kwan", "download accept");
+						//	saveFile(responseBody);
+					}
+				})
+				.observeOn(AndroidSchedulers.mainThread()) //在主线程中更新ui
+				.subscribeWith(subscriber);
+
+		addDisposable(BaseServerAPI.DOWN_LOAD_VOCATIONAL_ID, disposable);
+
+	}
 
 
 	/**
 	 * 准备下载 平分分线程
 	 *
-	 * @param fileBean
+	 * @param downloadFileBean
 	 */
 
-	private void prepareDownloadFile(FileBean fileBean,final FileCallBack<ResponseBody> callBack) {
+	private void prepareDownloadFile(DownloadFileBean downloadFileBean) {
 
 		BaseDao<DownLoadFileBlockBean> dao = new BaseDao<>();
 		//查询数据库中的下载线程信息
-		List<DownLoadFileBlockBean> blockBeans = dao.QueryObject(DownLoadFileBlockBean.class, "URL=?", fileBean.getUrl());
+		List<DownLoadFileBlockBean> blockBeans = dao.QueryObject(DownLoadFileBlockBean.class, "where URL=?", downloadFileBean.getUrl());
+		Log.e("kwan", "preparDown blockBeans==" + blockBeans.size());
 
 		if (blockBeans.size() == 0) {//如果列表没有数据 则为第一次下载
 			//根据下载的线程总数平分各自下载的文件长度
-			long length = fileBean.getLength() / downloadThreadCount;
+			long length = downloadFileBean.getLength() / downloadThreadCount;
 			for (long i = 0; i < downloadThreadCount; i++) {
 
-				DownLoadFileBlockBean thread = new DownLoadFileBlockBean(i, fileBean.getUrl(), i * length,
+				DownLoadFileBlockBean thread = new DownLoadFileBlockBean(i, downloadFileBean.getUrl(), i * length,
 						(i + 1) * length - 1, 0L);
 
 				if (i == downloadThreadCount - 1) {
-					thread.setEnd(fileBean.getLength());
+					thread.setEnd(downloadFileBean.getLength());
 				}
+
+
+				Log.e("kwan","int thread -- "+thread.toString());
+
+
 				//将下载线程保存到数据库
 				dao.insertObject(thread);
 				blockBeans.add(thread);
 			}
+		}else{
+			for (DownLoadFileBlockBean blockBean:blockBeans)
+				Log.e("kwan","jk blockBean -- "+blockBean.toString());
+
 		}
 		//创建下载线程开始下载
-		for (DownLoadFileBlockBean blockBean : blockBeans) {
 
+		int  finishedProgress = 0;
+
+
+		for (DownLoadFileBlockBean blockBean : blockBeans) {
 			finishedProgress += blockBean.getFinished();
-			//DownloadThread downloadThread = new DownloadThread(fileBean, thread, this);
 			//开始下载
-			//VersionUpdateService.executorService.execute(downloadThread);
 			long start = blockBean.getStart() + blockBean.getFinished();
-			//connection.setRequestProperty("Range","bytes="+start+"-"+threadBean.getEnd());
-			download("bytes="+start+"-"+blockBean.getEnd(),blockBean.getUrl(),callBack);
-			//downloadThreads.add(downloadThread);
+			download("bytes=" + start + "-" + blockBean.getEnd(), blockBean.getUrl(), blockBean, downloadFileBean);
+		}
+
+		callBack.onDownloadPrepare(blockBeans,finishedProgress);
+	}
+
+
+
+
+//	public void saveFile(ResponseBody body) {
+//
+//		InputStream is = null;
+//		byte[] buf = new byte[2048];
+//		int len;
+//		FileOutputStream fos = null;
+//		try {
+//			is = body.byteStream();
+//			fos = new FileOutputStream(getFile(fileBean));
+//			while ((len = is.read(buf)) != -1) {
+//				fos.write(buf, 0, len);
+//			}
+//			fos.flush();
+//			//unsubscribe();
+//			//callBack.onDownloadCompleted();
+//
+//
+//		} catch (FileNotFoundException e) {
+//			e.printStackTrace();
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		} finally {
+//			try {
+//				if (is != null) is.close();
+//				if (fos != null) fos.close();
+//			} catch (IOException e) {
+//				Log.e("saveFile", e.getMessage());
+//			}
+//		}
+//	}
+
+	public void saveMergerFile(ResponseBody body, DownLoadFileBlockBean blockBean, DownloadFileBean fileBean) {
+
+		try {
+
+			//设置写入位置
+			File file = getFile(fileBean);
+			RandomAccessFile raf = new RandomAccessFile(file, "rwd");
+			raf.seek(blockBean.getStart() + blockBean.getFinished());
+
+
+			//开始下载
+			InputStream inputStream = body.byteStream();
+			byte[] bytes = new byte[1024];
+			int len;
+			while ((len = inputStream.read(bytes)) != -1) {
+				raf.write(bytes, 0, len);
+				//将加载的进度回调出去
+				callBack.onDownloadProgress(len);
+				//保存进度
+				blockBean.setFinished(blockBean.getFinished() + len);
+
+				//在下载暂停的时候将下载进度保存到数据库
+				if (isClose) {
+					callBack.closeCallBack(blockBean);
+					return;
+				}
+				if (isPause) {
+					callBack.pauseCallBack(blockBean);
+					return;
+				}
+			}
+
+
+			callBack.blockDownLoadFinished(blockBean);
+
+			Log.e("kwan", "merger ok " + blockBean.toString());
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 	}
 
 
+	private File getFile(DownloadFileBean fileBean) {
+		File dir = new File(fileBean.getSavePath());
+		if (!dir.exists()) {
+			dir.mkdirs();
+		}
+		return new File(dir, fileBean.getFileName());
+	}
 
 }

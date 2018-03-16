@@ -1,15 +1,15 @@
 package com.example.kwan.libbaseapplication;
 
+import android.content.Intent;
+import android.os.Build;
 import android.os.Environment;
-import android.util.Log;
 
 import com.kwan.base.api.BaseAPIUtil;
-import com.kwan.base.api.download.FileCallBack;
+import com.kwan.base.common.service.VersionUpdateService;
+import com.kwan.base.download.DownloadFileBean;
 import com.kwan.base.mvp.model.BaseModel;
 import com.kwan.base.mvp.presenter.BasePresenter;
 import com.kwan.base.mvp.view.activity.BaseActivity;
-
-import okhttp3.ResponseBody;
 
 public class MainActivity extends BaseActivity {
 
@@ -17,8 +17,6 @@ public class MainActivity extends BaseActivity {
 	static {
 		//System.loadLibrary("native-lib");
 	}
-
-
 
 
 	@Override
@@ -58,7 +56,6 @@ public class MainActivity extends BaseActivity {
 //		tv.setText(stringFromJNI());
 
 
-
 		BasePresenter presenter = new BasePresenter(this) {
 			@Override
 			public BaseModel getBaseModel() {
@@ -93,41 +90,42 @@ public class MainActivity extends BaseActivity {
 
 		String url = "http://112.29.152.47/imtt.dd.qq.com/16891/7693A213D6163F3C2B1505130BBCFB08.apk?mkey=5a0930034113e38d&f=1907&c=0&fsname=com.happyelements.AndroidAnimal.qq_1.50_50.apk&csr=1bbd&p=.apk";
 
-		Log.e("path","path---"+ Environment.getExternalStorageDirectory().getPath());
 
-
-		presenter.download("0", url, Environment.getExternalStorageDirectory().getPath(),
-				new FileCallBack<ResponseBody>(Environment.getExternalStorageDirectory().getPath(),"mttest.jpg") {
-					@Override
-					public void onSuccess(ResponseBody responseBody) {
-
-					}
-
-					@Override
-					public void onProgress(long progress, long total, boolean done) {
-
-						Log.e("onProgress","progress:"+progress+" total:"+total+" done:"+done);
-					}
-
-					@Override
-					public void onStart() {
-
-					}
-
-					@Override
-					public void onCompleted() {
-						Log.e(" onCompleted()","main");
-					}
-
-					@Override
-					public void onError(Throwable e) {
-
-					}
-				});
+//		Log.e("path","path---"+ Environment.getExternalStorageDirectory().getPath());
+//
+//
+//		presenter.download("0", url, Environment.getExternalStorageDirectory().getPath(),
+//				new DownloadFileCallBack<ResponseBody>(Environment.getExternalStorageDirectory().getPath(),"mttest.jpg") {
+//					@Override
+//					public void onSuccess(ResponseBody responseBody) {
+//
+//					}
+//
+//					@Override
+//					public void onProgress(long progress, long total, boolean done) {
+//
+//						Log.e("onProgress","progress:"+progress+" total:"+total+" done:"+done);
+//					}
+//
+//					@Override
+//					public void onStart() {
+//
+//					}
+//
+//					@Override
+//					public void onCompleted() {
+//						Log.e(" onCompleted()","main");
+//					}
+//
+//					@Override
+//					public void onError(Throwable e) {
+//
+//					}
+//				});
 
 
 //		presenter.download(url,
-//				new FileCallBack<ResponseBody>(Environment.getExternalStorageDirectory().getPath(),"mttest.jpg") {
+//				new DownloadFileCallBack<ResponseBody>(Environment.getExternalStorageDirectory().getPath(),"mttest.jpg") {
 //					@Override
 //					public void onSuccess(ResponseBody responseBody) {
 //
@@ -154,7 +152,37 @@ public class MainActivity extends BaseActivity {
 //
 //					}
 //				});
+		passCheck();
+	}
 
+
+	/**
+	 * 开始下载
+	 */
+	public void startDownLoad() {
+//		if (context == null) {
+//			throw new NullPointerException("context cannot be null, you must first call setContext().");
+//		}
+//		if (fileBean == null) {
+//			throw new NullPointerException("url cannot be null, you must first call setDownLoadURL().");
+//		}
+
+		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+			//startActivity(new Intent(this, TranslucentActivity.class));
+		} else {
+			passCheck();
+		}
+	}
+
+	public void passCheck() {
+
+		String url = "http://112.29.152.47/imtt.dd.qq.com/16891/7693A213D6163F3C2B1505130BBCFB08.apk?mkey=5a0930034113e38d&f=1907&c=0&fsname=com.happyelements.AndroidAnimal.qq_1.50_50.apk&csr=1bbd&p=.apk";
+
+		Intent startIntent = new Intent(this, VersionUpdateService.class);
+		startIntent.setAction(VersionUpdateService.ACTION_START);
+		DownloadFileBean downloadFileBean = new DownloadFileBean(1, "xx.apk", Environment.getExternalStorageDirectory().getPath(), url, 0, 0);
+		startIntent.putExtra("DownloadFileBean", downloadFileBean);
+		startService(startIntent);
 	}
 
 	@Override
