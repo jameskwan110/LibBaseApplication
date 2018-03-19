@@ -3,7 +3,7 @@ package com.kwan.base.api;
 
 import android.util.Log;
 
-import com.kwan.base.api.download.DownloadProgressInterceptor;
+import com.kwan.base.download.DownloadProgressInterceptor;
 
 import java.io.IOException;
 import java.lang.reflect.Field;

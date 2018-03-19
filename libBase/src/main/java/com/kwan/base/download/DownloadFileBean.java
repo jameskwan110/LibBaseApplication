@@ -2,13 +2,6 @@ package com.kwan.base.download;
 
 import java.io.Serializable;
 
-/**
- * Created by Kun on 2017/5/22.
- * GitHub: https://github.com/AndroidKun
- * CSDN: http://blog.csdn.net/a1533588867
- * Description:下载文件信息
- */
-
 public class DownloadFileBean implements Serializable {
 
     private int id;
@@ -17,6 +10,7 @@ public class DownloadFileBean implements Serializable {
     private String url;
     private long length;
     private long finished;
+    private int version;
 
     public DownloadFileBean(int id, String fileName, String savePath , String url, long length, long finished) {
         this.id = id;
@@ -27,7 +21,19 @@ public class DownloadFileBean implements Serializable {
         this.finished = finished;
     }
 
-    public int getId() {
+	public void setFinished(long finished) {
+		this.finished = finished;
+	}
+
+	public int getVersion() {
+		return version;
+	}
+
+	public void setVersion(int version) {
+		this.version = version;
+	}
+
+	public int getId() {
         return id;
     }
 

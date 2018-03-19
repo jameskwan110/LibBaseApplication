@@ -3,10 +3,7 @@ package com.kwan.base.common.config;
 import android.os.Environment;
 
 /**
- * Created by Kun on 2017/5/22.
- * GitHub: https://github.com/AndroidKun
- * CSDN: http://blog.csdn.net/a1533588867
- * Description:配置文件
+ *
  */
 
 public class Config {

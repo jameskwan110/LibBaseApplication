@@ -1,13 +1,10 @@
-package com.kwan.base.mvp.model;
+package com.kwan.base.download;
 
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 
-import com.kwan.base.api.download.DownloadFileCallBack;
 import com.kwan.base.common.bean.DownLoadFileBlockBean;
 import com.kwan.base.common.config.Config;
-import com.kwan.base.download.DownloadFileBean;
 import com.kwan.base.mvp.model.db.BaseDao;
 import com.kwan.base.mvp.presenter.IBasePresenter;
 
@@ -128,10 +125,7 @@ public class DownloadTask implements IBasePresenter, DownloadFileCallBack<Respon
 	@Override
 	public void pauseCallBack(DownLoadFileBlockBean blockBean) {
 
-
-		Log.e("kwan","暂停更新---："+blockBean.toString());
-
-		new BaseDao().updateObject(blockBean);
+		new BaseDao<DownLoadFileBlockBean>().updateObject(blockBean);
 		Intent intent = new Intent(Config.ACTION_DOWNLOAD_PAUSE);
 		intent.putExtra("DownloadFileBean", fileBean);
 		context.sendBroadcast(intent);
@@ -171,8 +165,6 @@ public class DownloadTask implements IBasePresenter, DownloadFileCallBack<Respon
 
 	@Override
 	public void onDownloadPrepare(List<DownLoadFileBlockBean> blockBeans,int finishedProgress) {
-		Log.e("kwan", "onDownloadPrepare++" + blockBeans.size());
-
 		this.finishedProgress = finishedProgress;
 		this.blockBeans.addAll(blockBeans);
 		blockBeans2delete.addAll(blockBeans);

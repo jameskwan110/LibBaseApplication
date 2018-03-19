@@ -1,12 +1,7 @@
 package com.example.kwan.libbaseapplication;
 
-import android.content.Intent;
-import android.os.Build;
-import android.os.Environment;
-
 import com.kwan.base.api.BaseAPIUtil;
-import com.kwan.base.common.service.VersionUpdateService;
-import com.kwan.base.download.DownloadFileBean;
+import com.kwan.base.common.service.VersionUpdateConfig;
 import com.kwan.base.mvp.model.BaseModel;
 import com.kwan.base.mvp.presenter.BasePresenter;
 import com.kwan.base.mvp.view.activity.BaseActivity;
@@ -167,22 +162,31 @@ public class MainActivity extends BaseActivity {
 //			throw new NullPointerException("url cannot be null, you must first call setDownLoadURL().");
 //		}
 
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-			//startActivity(new Intent(this, TranslucentActivity.class));
-		} else {
+
 			passCheck();
-		}
+
 	}
 
 	public void passCheck() {
 
 		String url = "http://112.29.152.47/imtt.dd.qq.com/16891/7693A213D6163F3C2B1505130BBCFB08.apk?mkey=5a0930034113e38d&f=1907&c=0&fsname=com.happyelements.AndroidAnimal.qq_1.50_50.apk&csr=1bbd&p=.apk";
 
-		Intent startIntent = new Intent(this, VersionUpdateService.class);
-		startIntent.setAction(VersionUpdateService.ACTION_START);
-		DownloadFileBean downloadFileBean = new DownloadFileBean(1, "xx.apk", Environment.getExternalStorageDirectory().getPath(), url, 0, 0);
-		startIntent.putExtra("DownloadFileBean", downloadFileBean);
-		startService(startIntent);
+//		Intent startIntent = new Intent(this, VersionUpdateService.class);
+//		startIntent.setAction(VersionUpdateService.ACTION_START);
+//		DownloadFileBean downloadFileBean = new DownloadFileBean(1, "xx.apk", Environment.getExternalStorageDirectory().getPath(), url, 0, 0);
+//		startIntent.putExtra("DownloadFileBean", downloadFileBean);
+//		startService(startIntent);
+
+		VersionUpdateConfig.getInstance()//获取配置实例
+				.setContext(MainActivity.this)//设置上下文
+				.setDownLoadURL(url)//设置文件下载链接
+				.setNewVersion(1)//设置即将下载的APK的版本号
+				.setNotificationIconRes(R.mipmap.ic_launcher)//设置通知大图标
+				.setNotificationSmallIconRes(R.mipmap.ic_launcher)//设置通知小图标
+				.setNotificationTitle("版本升级Demo")//设置通知标题
+				.startDownLoad();//开始下载
+
+
 	}
 
 	@Override

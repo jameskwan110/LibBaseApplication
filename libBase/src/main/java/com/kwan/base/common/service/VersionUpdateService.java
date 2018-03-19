@@ -24,7 +24,7 @@ import android.widget.Toast;
 import com.kwan.base.R;
 import com.kwan.base.common.config.Config;
 import com.kwan.base.download.DownloadFileBean;
-import com.kwan.base.mvp.model.DownloadTask;
+import com.kwan.base.download.DownloadTask;
 
 import java.io.File;
 import java.text.DecimalFormat;
@@ -32,14 +32,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-
-/**
- * Created by Kun on 2017/5/22.
- * GitHub: https://github.com/AndroidKun
- * CSDN: http://blog.csdn.net/a1533588867
- * Description:
- */
 
 public class VersionUpdateService extends Service {
 
@@ -129,7 +121,7 @@ public class VersionUpdateService extends Service {
 	@Override
 	public void onDestroy() {
 		super.onDestroy();
-		// unregisterReceiver(receiver);
+		unregisterReceiver(receiver);
 	}
 
 	private NotificationManager notificationManager;
@@ -246,24 +238,23 @@ public class VersionUpdateService extends Service {
 
 
 			} else if (action.equals(BUTTON_CLOSE_ACTION)) {//点击取消下载按钮
-//				if (curDownloadFileBean != null) {
-//
-//					File file = new File(Config.downLoadPath, curDownloadFileBean.getFileName());
-//					DownloadTask task = null;
-//					for (DownloadTask downloadTask : downloadTasks) {
-//						if (downloadTask.getFileBean().getUrl().equals(curDownloadFileBean.getUrl())) {
-//							downloadTask.closeDownload();
-//							task = downloadTask;
-//							break;
-//						}
-//					}
-//					if (task != null) {
-//						downloadTasks.remove(task);
-//					} else {
-//						DownloadTask downloadTask = new DownloadTask(VersionUpdateService.this, curDownloadFileBean, 3);
-//						downloadTask.closeDownload();
-//					}
-//				}
+				if (curDownloadFileBean != null) {
+
+					DownloadTask task = null;
+					for (DownloadTask downloadTask : downloadTasks) {
+						if (downloadTask.getFileBean().getUrl().equals(curDownloadFileBean.getUrl())) {
+							downloadTask.closeDownload();
+							task = downloadTask;
+							break;
+						}
+					}
+					if (task != null) {
+						downloadTasks.remove(task);
+					} else {
+						DownloadTask downloadTask = new DownloadTask(VersionUpdateService.this, curDownloadFileBean);
+						downloadTask.closeDownload();
+					}
+				}
 
 
 			} else if (action.equals(Config.ACTION_DOWNLOAD_CLOSE)) {//取消下载

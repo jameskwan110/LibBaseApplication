@@ -1,4 +1,4 @@
-package com.kwan.base.api.download;
+package com.kwan.base.download;
 
 import com.kwan.base.common.bean.DownLoadFileBlockBean;
 
@@ -8,8 +8,6 @@ import java.util.List;
  * Created by Mr.Kwan on 2016-6-29.
  */
 public interface DownloadFileCallBack<T> {
-
-
 
 	void onDownloadSuccess(T t);
 

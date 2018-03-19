@@ -3,7 +3,6 @@ package com.kwan.base.mvp.presenter;
 import android.support.annotation.CallSuper;
 import android.util.Log;
 
-import com.kwan.base.api.download.DownloadFileCallBack;
 import com.kwan.base.mvp.model.BaseModel;
 import com.kwan.base.rxbus.RxBusManager;
 
@@ -13,7 +12,6 @@ import java.net.UnknownHostException;
 import java.util.HashMap;
 
 import io.reactivex.functions.Consumer;
-import okhttp3.ResponseBody;
 
 /**
  * Presenter 基类
@@ -32,12 +30,7 @@ public abstract class BasePresenter implements IBasePresenter {
 		busManager = new RxBusManager();
 	}
 
-	/**
-	 * 下载 文件
-	 *
-	 * @param url      全路径地址
-	 * @param callBack 回调
-	 */
+
 //	public void download(String url, DownloadFileCallBack<ResponseBody> callBack) {
 //		mBaseModel.download(url, callBack);
 //	}

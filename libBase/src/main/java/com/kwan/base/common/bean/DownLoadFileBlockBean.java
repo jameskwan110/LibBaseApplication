@@ -4,8 +4,10 @@ import org.greenrobot.greendao.annotation.Entity;
 import org.greenrobot.greendao.annotation.Id;
 import org.greenrobot.greendao.annotation.Keep;
 import org.greenrobot.greendao.annotation.Property;
+import org.greenrobot.greendao.annotation.Generated;
 
 /**
+ *
  * Created by Administrator on 2018/3/15.
  */
 @Entity
@@ -22,7 +24,6 @@ public class DownLoadFileBlockBean extends POJO {
 	@Property(nameInDb = "FINISHED")
 	private long finished;
 
-
 	@Keep
 	public DownLoadFileBlockBean(long id, String url, long start, long end, long finished) {
 		this.id = id;
@@ -34,6 +35,7 @@ public class DownLoadFileBlockBean extends POJO {
 
 	public DownLoadFileBlockBean() {
 	}
+
 	public long getId() {
 		return this.id;
 	}

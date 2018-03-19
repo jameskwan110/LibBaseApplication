@@ -1,14 +1,12 @@
-package com.kwan.base.mvp.model;
+package com.kwan.base.download;
 
 import android.util.Log;
 
 import com.kwan.base.api.BaseAPIUtil;
 import com.kwan.base.api.BaseServerAPI;
 import com.kwan.base.api.ObjectServerSubscriber;
-import com.kwan.base.api.download.DownloadFileCallBack;
-import com.kwan.base.api.download.DownloadProgressInterceptor;
 import com.kwan.base.common.bean.DownLoadFileBlockBean;
-import com.kwan.base.download.DownloadFileBean;
+import com.kwan.base.mvp.model.BaseModel;
 import com.kwan.base.mvp.model.db.BaseDao;
 import com.kwan.base.mvp.presenter.IBasePresenter;
 
@@ -25,6 +23,7 @@ import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
 
 /**
+ *
  * Created by Administrator on 2018/3/15.
  */
 
@@ -92,11 +91,8 @@ public class DownLoadModel extends BaseModel {
 				.doOnNext(new Consumer<ResponseBody>() {
 					@Override
 					public void accept(@NonNull ResponseBody responseBody) throws Exception {
-						Log.e("kwan", "download accept::" + responseBody.contentLength());
 						downloadFileBean.setLength(responseBody.contentLength());
 						prepareDownloadFile(downloadFileBean);
-
-
 					}}).subscribe();
 	}
 
@@ -110,9 +106,6 @@ public class DownLoadModel extends BaseModel {
 
 	private void download(final String start, String url, final DownLoadFileBlockBean blockBean, final DownloadFileBean fileBean) {
 
-		Log.e("kwan","start::"+start);
-
-
 		Disposable disposable = mBaseAPIUtil.download(start, url, new DownloadProgressInterceptor.DownloadProgressListener() {
 			@Override
 			public void update(long bytesRead, long contentLength, boolean done) {
@@ -122,10 +115,6 @@ public class DownLoadModel extends BaseModel {
 				.doOnNext(new Consumer<ResponseBody>() {
 					@Override
 					public void accept(@NonNull ResponseBody responseBody) throws Exception {
-						Log.e("kwan", "blockbean-- " + blockBean.getId() + " download accept");
-
-						Log.e("kwan","begin save:");
-
 						saveMergerFile(responseBody, blockBean, fileBean);
 					}
 				})//在主线程中更新ui
@@ -180,38 +169,26 @@ public class DownLoadModel extends BaseModel {
 		BaseDao<DownLoadFileBlockBean> dao = new BaseDao<>();
 		//查询数据库中的下载线程信息
 		List<DownLoadFileBlockBean> blockBeans = dao.QueryObject(DownLoadFileBlockBean.class, "where URL=?", downloadFileBean.getUrl());
-		Log.e("kwan", "preparDown blockBeans==" + blockBeans.size());
 
 		if (blockBeans.size() == 0) {//如果列表没有数据 则为第一次下载
 			//根据下载的线程总数平分各自下载的文件长度
 			long length = downloadFileBean.getLength() / downloadThreadCount;
 			for (long i = 0; i < downloadThreadCount; i++) {
 
-				DownLoadFileBlockBean thread = new DownLoadFileBlockBean(i, downloadFileBean.getUrl(), i * length,
+				DownLoadFileBlockBean blockBean = new DownLoadFileBlockBean(i, downloadFileBean.getUrl(), i * length,
 						(i + 1) * length - 1, 0L);
 
 				if (i == downloadThreadCount - 1) {
-					thread.setEnd(downloadFileBean.getLength());
+					blockBean.setEnd(downloadFileBean.getLength());
 				}
-
-
-				Log.e("kwan","int thread -- "+thread.toString());
-
-
 				//将下载线程保存到数据库
-				dao.insertObject(thread);
-				blockBeans.add(thread);
+				dao.insertObject(blockBean);
+				blockBeans.add(blockBean);
 			}
-		}else{
-			for (DownLoadFileBlockBean blockBean:blockBeans)
-				Log.e("kwan","jk blockBean -- "+blockBean.toString());
-
 		}
+
 		//创建下载线程开始下载
-
 		int  finishedProgress = 0;
-
-
 		for (DownLoadFileBlockBean blockBean : blockBeans) {
 			finishedProgress += blockBean.getFinished();
 			//开始下载
@@ -265,7 +242,6 @@ public class DownLoadModel extends BaseModel {
 			RandomAccessFile raf = new RandomAccessFile(file, "rwd");
 			raf.seek(blockBean.getStart() + blockBean.getFinished());
 
-
 			//开始下载
 			InputStream inputStream = body.byteStream();
 			byte[] bytes = new byte[1024];
@@ -276,7 +252,6 @@ public class DownLoadModel extends BaseModel {
 				callBack.onDownloadProgress(len);
 				//保存进度
 				blockBean.setFinished(blockBean.getFinished() + len);
-
 				//在下载暂停的时候将下载进度保存到数据库
 				if (isClose) {
 					callBack.closeCallBack(blockBean);
@@ -287,11 +262,7 @@ public class DownLoadModel extends BaseModel {
 					return;
 				}
 			}
-
-
 			callBack.blockDownLoadFinished(blockBean);
-
-			Log.e("kwan", "merger ok " + blockBean.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
